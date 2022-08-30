@@ -448,10 +448,141 @@ print(r_list)
   - 遍历，取其中每一组进行数据的提取，不会造成数据的对应错乱
 
 ### 通用爬虫案例
-### 爬取动态html数据
-### 豆瓣登录案例
-### 斗鱼爬虫
+注意: 手机版的页面内容只能在 F12 调试模式下，查看response响应的内容！！！
+```
+1. start_url [https://tieba.baidu.com/mo/q---2915204C8417AAE3CC7B4CB950E36B43%3AFG%3D1--1-3-0--2--wapp_1661503818606_371/m?kw=%E7%AC%91%E8%AF%9D&lp=1041]
+https://tieba.baidu.com/mo/q---2915204C8417AAE3CC7B4CB950E36B43%3AFG%3D1--1-3-0--2--wapp_1661503818606_371/m?pnum=35993&lm=&tnum=359921&kw=%E7%AC%91%E8%AF%9D&lp=5009&pinf=1_2_0&sub=%E8%B7%B3%E9%A1%B5
 
+2. 发送请求获取响应
+3. 提取数据,提取下一页的url地址
+4. 保存数据
+5. 请求下一页的 URL,进入循环2-5
+```
+#### 通用爬虫的套路
+- 准备 url
+  - 准备 start_url
+    - url 地址规律不明显，总数不确定
+    - 通过代码提取下一页URL
+      - xpath
+      - 寻找 url 地址，部分参数在当前响应中（比如，当前页码数和总的页码数在当前的响应中）
+  - 准备 url_list
+    - 页码总数明确
+    - URL地址规律明显
+- 发送请求，获取响应
+  - 添加随机的 `User-Agent`，反反爬虫
+  - 添加随机的代理`IP`，反反爬虫
+  - 在对方判断出我们是爬虫之后，应该添加更多的 `header`字段，包括cookie
+  - cookie的处理可以使用session来解决
+  - 准备一堆能用的cookie,组成cookie池
+    - 如果不登录
+      - 准备刚开始能够成功请求对方网站的cookie，即接收对方网站设置在response的cookie
+      - 下次请求的时候，使用之前的列表中的cookie来请求
+    - 如果登录
+      - 准备多个账号
+      - 使用程序获取每个账号的cookie
+      - 之后请求登录之后才能访问的网站随机的选择cookie
+- 提取数据
+  - 确定数据的位置
+    - 如果数据在当前页面的url地址中
+      - 提取的是列表页的数据
+        - 直接请求列表页的URL地址，不用进入详情页
+      - 提取详情页的数据
+        - 1. 确定url
+        - 2. 发送请求
+        - 3. 提取数据
+        - 4. 返回
+    - 如果数据不在当前URL地址中
+      - 在其他响应中，寻找数据的位置
+        - 1. 从 network 中从上往下寻找
+        - 2. 使用chrome中过滤条件，选择除了 js ,css , img 之外的按钮
+        - 3. 使用chrome的search all file，搜索数字和英文
+  - 数据提取
+    - xpath,从html中提取整块的数据，先分组，之后每一组再提取
+    - re,提取 max_time,price,html中的json字符串
+    - json
+- 保存
+  - 保存在本地，text、 json、csv
+  - 保存在数据库
+
+#### xpath的包含
+- `//div[contains(@class,"i")]`
+
+### 爬取动态html数据
+#### 分析
+ctrl+f 在控制台搜索想要的数据 [response | preview]
+#### selenium 和 phantomjs
+selenium : web自动化测试工具
+phantomjs : “无界面” 浏览器，他会把网站加载到内存并执行页面上的JavaScript
+
+### 豆瓣登录案例
+> 云打码：https://cloud.tencent.com/developer/article/1698658?from=15425
+> 目前云打码网站已经没有了
+
+> 元素定位的方法和iframe的切换和selenium使用的注意点
+driver.switch_to
+
+作业：网易云|哔哩哔哩(弹幕)|天天基金[https://fund.eastmoney.com/]
+
+### 斗鱼爬虫
+#### tesseract的使用
+- 概念：将图片翻译成文字的OCR库(光学文字识别，Optical Character Recognition)
+  [pytesseract是google做的ocr库，可以识别图片中的文字，一般用在爬虫登录时验证码的识别]
+- 安装：sudo apt-get install tesseract-ocr
+- 安装python插件：pip install pytesseract
+```py
+"""Demo"""
+import pytesseract
+from PIL import Image
+image = Image.open("1.jpg")
+text = pytesseract.image_to_string(image,lang='chi_sim') #使用简体中文解析图片
+print(text)
+```
+
+#### driver 的安装
+phantomjs安装指南
+```
+# 官网下载
+## 解压文件
+tar -xvf phantomjs-1.9.7-linux-x86_64.tar.bz2
+
+## 将程序移到合适的位置
+sudo mv phantomjs-1.9.7-linux-x86_64 /usr/local/phantomjs
+
+## 创建软连接到环境变量中，这样可以直接在shell中使用phantomjs命令
+sudo ln -sf /usr/local/src/phantomjs/bin/phantomjs /usr/local/bin/phantomjs
+
+## 检查是否正常工作
+phantomjs --version
+```
+> chromedriver下载地址：https://npm.taobao.org/mirrors/chromedriver
+> phantomjs 下载地址：http://phantomjs.org/download.html
+
+#### selenium.common.exceptions.WebDriverException: Message: ‘chromedriver‘ 解决办法
+1. 查看google版本：chrome://version/
+2. 确认好Chrome浏览器版本后，接下来我们打开谷歌浏览器的驱动下载网址：http://chromedriver.storage.googleapis.com/index.html
+
+下载完后我们解压出来,就是chromedriver.exe一个文件。
+
+3. 还差最后一步,只需要把它放到下面两个路径下即可!
+- 一个是在C盘的路径下,具体的位置:C:\Program Files (x86)\Google\Chrome\Application
+- 还有一个就是在你python安装的目录下
+---
+### 爬虫代码建议
+- 尽量减少请求次数
+  - 1. 能抓列表就不用抓详情页
+  - 2. 保存获取到的html页面，供查错和重复请求使用
+- 关闭网站的所有类型的页面
+  - 1. wap页面，触屏版页面
+  - 2. H5页面
+  - 3. APP
+- 多伪装
+  - 1. 动态的UA
+  - 2. 代理IP
+  - 3. 不使用cookie 
+- 利用多线程分布式 
+  在不被ban的请求下尽可能提高速度
+
+toggle device toolbar
 ---
 反爬虫一些技巧：
 - 1. 定义 User-Agent 
